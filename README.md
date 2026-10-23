@@ -1,0 +1,294 @@
+# An upper bound for the connective constant of the square lattice
+
+Programs, certificate hashes and the Lean formalization for the paper *An upper bound for the connective constant of
+the square lattice* by Tejasvi Singh Tomar (doi:10.5281/zenodo.23599811). The programs and the Lean files are archived
+at doi:10.5281/zenodo.23599812, and the three files of the certificate, split into pieces, in five records:
+doi:10.5281/zenodo.23574056, doi:10.5281/zenodo.23574058, doi:10.5281/zenodo.23574060, doi:10.5281/zenodo.23574062 and
+doi:10.5281/zenodo.23574064 (see "Checking the certificate"). Three other certificates, with larger ratios, are archived
+in earlier records (see "Other certificates").
+
+## Theorem
+
+Let `c_n` be the number of `n`-step self-avoiding walks on the square lattice `Z^2` that start at the origin, and let
+`mu = lim c_n^(1/n)` be the connective constant. Then
+
+    mu <= 105432502045487/39656386815908 = 2.65865124160008384... < 2.6586513.
+
+The previous best upper bound was `mu <= 2.662342426` (O. Couronné, J. Stat. Phys. 192 (2025), 153; arXiv:2211.16146).
+This is constant 38a of the repository of optimization constants (https://teorth.github.io/optimizationproblems/).
+
+## Proof outline
+
+1. **Bridges** (Section 2 of the paper). A bridge is a walk `w_0, ..., w_n` with `x(w_0) < x(w_i) <= x(w_n)` for
+   `i >= 1`. By Hammersley and Welsh (1962), `mu = lim b_n^(1/n)`, where `b_n` is the number of `n`-step bridges from
+   the origin. A bridge from the origin, preceded by the half-line `H = {(x,0) : x <= 0}`, is part of a two-sided
+   infinite self-avoiding path.
+2. **Dead cells** (Section 3). A cell is dead if no infinite self-avoiding continuation of the current past can visit
+   it. Three tests that look only at the state and the step recognize dead cells: (a) at least three neighbours of
+   the cell belong to the state; (b) the cell is not connected to infinity; (c) one free cell separates it from
+   infinity and from the free neighbours of the new position.
+3. **Certificate** (Sections 3-5). A state is a lattice path ending at the origin with last step `+x`. A certificate
+   lists states, gives for each state and each of the steps `+x`, `+y`, `-y` either no child (only if the step goes
+   into a cell of the state or into a finite region) or a child state, and gives a nonnegative integer weight `V` for
+   each state. Every cell of a child, placed at the new position by one of the 8 lattice symmetries, must be a cell
+   of the old state, the new position, or a dead cell. Along every bridge, all cells of the current state are then
+   visited or dead (Theorem 4.1), so distinct bridges give distinct paths in the automaton. If no weight is 0, the
+   number of paths of length `n` is at most `V_start lambda^n`, where `lambda` is the largest ratio
+   `sum_children V / V` (Lemma 5.1). Hence `mu <= lambda`.
+4. **The certificate of the theorem**, `k30e` (Section 6), has order 30 and 24,887,440,008 states, all with `V > 0`. Two
+   checkers, written independently, verify it and compute `lambda` exactly in 128-bit integer arithmetic. Both
+   checkers also accept the three other certificates.
+5. **Lean proof** (Section 7). `lean/` holds a Lean 4 proof of the theorem without hypotheses,
+   `Saw38a.K30E.connective_constant_le_unconditional`. It also proves the Hammersley-Welsh inequality, in the form
+   `c_n <= (n+1)^(2 floor(sqrt(2n))+1) b_(n+1)`. The certificate `k30e` is checked by a checker written in Lean, in 180
+   `native_decide` steps that execute compiled code (and one more for the start state), so the Lean compiler is part
+   of the trusted base; the soundness of the checker is proved in Lean. See the section "Lean proof" below and
+   `lean/README.md`.
+
+## Files
+
+- `checker/check_saw.cpp`: the checker (C++ with OpenMP). Its header states the checked claim and the certificate
+  format with 32-bit entries; for the 64-bit entries see "Certificate format".
+- `independent/`: a second checker, `check38a.cpp`. Its checking logic was written from the description of the checked
+  conditions before its author read the first checker. The directory also holds a Python version, `check38a_py.py`,
+  for small certificates, the generators of the negative controls (`mutate_cert.py`, `gaploop_guard_removed.patch`) and
+  its own README.
+- `builder/saw.cpp`: the program that built `k30e` (see "Provenance notes"). It is not needed to check it.
+- `builder/previous/saw.cpp`: the earlier version of this program, which built the three other certificates and the
+  small certificates used in `independent/`; the patch `independent/gaploop_guard_removed.patch` applies to it, and not
+  to `builder/saw.cpp`.
+- `certificate/SHA256SUMS`: sha256 of the files of the four certificates, uncompressed and as archived (compressed with
+  xz; for `k30e`, the ten compressed pieces). `certificate/gib_sha256_*.txt`: for each of the three uncompressed files
+  of `k30e`, the sha256 of every block of 2^30 bytes.
+- `lean/`: the Lean proof (sources only), with its own README, `SHA256SUMS` and `DATA_PINS.txt`.
+- `SHA256SUMS`: sha256 of all other files in this repository.
+
+## Certificate format
+
+The certificate `k30e`, of order `K = 30`, consists of three binary files (little-endian):
+
+- `k30e.keys`: `N` strictly increasing 64-bit unsigned integers, one per state. A key encodes a lattice path
+  `c_0, ..., c_{n-1}`: `n = key >> 58` is the number of cells, and the low 58 bits hold
+  `T = sum_{i=1}^{n-2} t_i 3^(n-2-i)`, where `t_i` is the turn at `c_i` (0 straight, 1 left, 2 right). The last step
+  `c_{n-2} -> c_{n-1}` is `+x` and `c_{n-1} = (0,0)`.
+- `k30e.chosen`: `N x 3` 64-bit unsigned integers. Entry `3s + j` is the index of the child of state `s` for the step
+  `+x`, `+y`, `-y` (`j = 0, 1, 2`), or `0xFFFFFFFFFFFFFFFF` for no child.
+- `k30e.v`: `N` doubles in `[0,1]`; the weight of state `s` is `V_s = floor(2^60 v_s)`.
+
+Here `N = 24887440008`. The start state is the straight path of `K/2 + 1 = 16` cells, with key `16 << 58`. The builder
+also writes a fourth file, `k30e.alive`, with one byte per state, all equal to 1 (24,887,440,008 bytes, sha256
+`41459667205c320d81a8391e95eacf6bddba3d4bb947125b48dcaf9d18de37f7`). Neither checker reads it, and it is not archived.
+
+The entries are 64-bit because `N >= 2^32 - 1`, as for `k28f`. The certificates `k28e` and `k26f` have fewer states,
+and their entries are 32-bit unsigned integers, with `0xFFFFFFFF` for no child. `independent/check38a.cpp` reads 32-bit
+entries if `N < 2^32 - 1` and 64-bit entries otherwise, and requires the `.chosen` file to have `12 N` or `24 N` bytes
+accordingly. `checker/check_saw.cpp` takes the width from the size of the `.chosen` file: 32-bit entries if it has
+`12 N` bytes, 64-bit entries if it has `24 N` bytes.
+
+## Checking the certificate
+
+The file `k30e.keys` and the byte ranges of `k30e.chosen` (four pieces) and `k30e.v` (five pieces) listed below were
+compressed separately with `xz -9`. The ten compressed files, 210,410,996,080 bytes in all, are in five records:
+
+| record | files |
+|---|---|
+| doi:10.5281/zenodo.23574056 | `k30e.keys.xz`, `k30e.chosen.part1.xz` |
+| doi:10.5281/zenodo.23574058 | `k30e.chosen.part2.xz`, `k30e.chosen.part3.xz` |
+| doi:10.5281/zenodo.23574060 | `k30e.chosen.part4.xz`, `k30e.v.part1.xz` |
+| doi:10.5281/zenodo.23574062 | `k30e.v.part2.xz`, `k30e.v.part5.xz` |
+| doi:10.5281/zenodo.23574064 | `k30e.v.part3.xz`, `k30e.v.part4.xz` |
+
+| file | bytes | first byte of the uncompressed file | uncompressed bytes |
+|---|---|---|---|
+| `k30e.keys.xz` | 17,690,904,620 | 0 | 199,099,520,064 |
+| `k30e.chosen.part1.xz` | 20,226,533,140 | 0 | 149,324,660,736 |
+| `k30e.chosen.part2.xz` | 22,599,715,512 | 149,324,660,736 | 149,324,660,736 |
+| `k30e.chosen.part3.xz` | 21,064,849,444 | 298,649,321,472 | 149,324,660,736 |
+| `k30e.chosen.part4.xz` | 15,710,030,624 | 447,973,982,208 | 149,324,577,984 |
+| `k30e.v.part1.xz` | 29,573,851,700 | 0 | 39,819,935,744 |
+| `k30e.v.part2.xz` | 27,398,464,332 | 39,819,935,744 | 39,819,935,744 |
+| `k30e.v.part3.xz` | 23,256,219,024 | 79,639,871,488 | 39,819,935,744 |
+| `k30e.v.part4.xz` | 18,408,974,248 | 119,459,807,232 | 39,819,935,744 |
+| `k30e.v.part5.xz` | 14,481,453,436 | 159,279,742,976 | 39,819,777,088 |
+
+Their sha256, also listed in `certificate/SHA256SUMS`, are
+
+    2666650fe83c65c2a4653973f256dc8ff640b51617c15b8781e6077def486d8d  k30e.keys.xz
+    7b58ac22e168136d91017822c60972b38ee12d56ed003b9ca4871e2e632cf353  k30e.chosen.part1.xz
+    6c2614f44979dcd94a8ce67549ceb36d87fdfab7f6b38f68f5d2d54665c7de3e  k30e.chosen.part2.xz
+    0f4c722498bd8bd3eb27775aaa7edfcb78a200cf1b4d8c5b178f03f2b0ea7015  k30e.chosen.part3.xz
+    769cbb866ccf71bb87bf21e05c01bd7657916fae64b799c928ef21638d579e48  k30e.chosen.part4.xz
+    64b54eeffa168503b464d39c0174b78b5d91c2e1f45cee45ec0b1594c136dcc6  k30e.v.part1.xz
+    b8fc195c1ea81d42af13323aaf2dee7c4f5b7b235da02633fecf688fcc8aec3a  k30e.v.part2.xz
+    acff736d6e436931831b3da78f3d6e4061d1d5f45bf21080d85473c7903fda11  k30e.v.part3.xz
+    e66a05539c19ab6584231d8085c0177323677d7c5017ef35f64d53b615efac24  k30e.v.part4.xz
+    1a6416e72bb6ea21d31957a66adc74d1ecd0b447da15e157663f465036caebc3  k30e.v.part5.xz
+
+Join the pieces of each file in order and decompress:
+
+    xz -dc k30e.keys.xz > k30e.keys
+    cat k30e.chosen.part1.xz k30e.chosen.part2.xz k30e.chosen.part3.xz k30e.chosen.part4.xz | xz -dc > k30e.chosen
+    cat k30e.v.part1.xz k30e.v.part2.xz k30e.v.part3.xz k30e.v.part4.xz k30e.v.part5.xz | xz -dc > k30e.v
+
+Then check the results:
+
+    sha256sum k30e.keys k30e.chosen k30e.v
+
+must print
+
+    7a244666900ae95d404550871de6c076fcb57d75baa5dbf68d6af6c798bf64b8  k30e.keys
+    c786235e644c5c547d5be02510561e3263baa55402c3042b676dffcdcc9700fa  k30e.chosen
+    fc4151469c10771fabc2605eb58db96390c15a2a42113c84d068dd5b2267e351  k30e.v
+
+The uncompressed files take 995.5 GB (199,099,520,064, 597,298,560,192 and 199,099,520,064 bytes). The files
+`certificate/gib_sha256_keys.txt`, `certificate/gib_sha256_chosen.txt` and `certificate/gib_sha256_v.txt` list, for each
+uncompressed file, the sha256 of every block of 2^30 bytes (the last block is shorter), so that a damaged region can be
+located.
+
+Build and run the checker:
+
+    g++ -O2 -march=native -fopenmp -o check_saw checker/check_saw.cpp
+    ./check_saw 30 k30e 128
+
+The arguments are the order `K`, the file prefix and the number of threads. It prints, with exit code 0,
+
+    CERTIFIED k=30 states=24887440008 Vzero=0 forbidden(occupied=11249726754 trapped=3526804071) children(subset=51386435328) dead cells(3nb=7437912569 enclosed=1640728376 cut=2570812628)
+    LAM = 2.658651241601 (exact ratio 105432502045487 / 39656386815908 at state 7814884826)  =>  mu(Z^2) <= 2.658651241601
+
+In the first line, `occupied` and `trapped` count the entries without a child for the two cases of condition (C1) of the
+paper, `subset` counts the children that need no dead cell, and `3nb`, `enclosed` and `cut` count the dead cells, by the
+first of the tests (a), (b), (c) that they pass. The exact ratio is the largest `sum_children V / V`, printed as a
+fraction that need not be reduced, and the decimal is rounded up. Several states may attain the maximum, so the printed
+state and fraction may differ from run to run; the reduced fraction is always `105432502045487/39656386815908`, the
+form printed by the run above. On a failed check the checker prints a line starting with `FAIL` and exits with a nonzero
+code. The run took 5,455 s on 128 threads; the checker holds about 52 bytes per state in memory (about 1.3 TB here).
+
+The second checker takes the claimed ratio as an argument and compares it exactly:
+
+    g++ -O2 -march=native -fopenmp -o check38a independent/check38a.cpp
+    ./check38a k30e 30 128 105432502045487/39656386815908
+
+See `independent/README.md` for its output, its exit codes, the small certificates and the negative controls.
+
+## Other certificates
+
+Three other certificates, made by the earlier version of the program with other parameters (see "Building the
+certificates"), are archived in earlier records:
+
+- `k28f`, of order 28, with 5,792,114,594 states: `k28f.keys.xz` (3,684,462,840 bytes) and `k28f.v.xz`
+  (27,412,437,612 bytes) in doi:10.5281/zenodo.23551536, and `k28f.chosen.xz` (18,593,405,052 bytes) in
+  doi:10.5281/zenodo.23551538. Its entries are 64-bit.
+- `k28e`, of order 28, with 4,124,965,633 states, and `k26f`, of order 26, with 960,470,402 states, in
+  doi:10.5281/zenodo.23548806, with these compressed sizes:
+
+| file | bytes | file | bytes |
+|---|---|---|---|
+| `k28e.keys.xz` | 2,924,191,244 | `k26f.keys.xz` | 608,516,272 |
+| `k28e.chosen.xz` | 12,765,591,564 | `k26f.chosen.xz` | 2,982,188,008 |
+| `k28e.v.xz` | 18,694,447,344 | `k26f.v.xz` | 4,519,899,776 |
+
+After decompression,
+
+    sha256sum k28f.keys k28f.chosen k28f.v k28e.keys k28e.chosen k28e.v k26f.keys k26f.chosen k26f.v
+
+must print
+
+    b73d1cccf9790daf2560025d804661976c27e81dea99b9444cf8fc362522309c  k28f.keys
+    64c49e61c481539fd658b66b788052634863f3f2e15d6f5e56ee31934caeda3e  k28f.chosen
+    e0142296de5bce853d3c4e80d1189e7647647b74462dcdd397fd2a305cdbfb94  k28f.v
+    ae2fc2a3ed12239868fb9f711ae16e7a5554792b6ed49e068b86abf461a87753  k28e.keys
+    71e3e45b9f5e08dedcbfc78316eb7fbef97357c3df699aa0e4213c5603e5602d  k28e.chosen
+    8062f90eb09348c27a7e11deabecd7cb4f4f8565bc743db78be8dd3063ca0069  k28e.v
+    1fcb4b076db689a9d9a044cc0e2a920c0eb5296c68b44bd4b5a5b083984291e0  k26f.keys
+    3a3bbe57756025029032e012953809526e4d072398a023a38831a3d0298822e9  k26f.chosen
+    8e89d9f25cb73384bb2c1bf41be46e93e86e4eb5578e6065f74f7233d40818ca  k26f.v
+
+Then `./check_saw 28 k28f 176` prints, with exit code 0,
+
+    CERTIFIED k=28 states=5792114594 Vzero=0 forbidden(occupied=2438258843 trapped=646976096) children(subset=12260547298) dead cells(3nb=1795496418 enclosed=346701725 cut=595009424)
+    LAM = 2.659891039655 (exact ratio 5100683462145913 / 1917628724674902 at state 326522321)  =>  mu(Z^2) <= 2.659891039655
+
+so that `mu <= 5100683462145913/1917628724674902 = 2.65989103965400719...`; that run took 1,178 s on 176 threads.
+`./check_saw 28 k28e 176` prints, with exit code 0,
+
+    CERTIFIED k=28 states=4124965633 Vzero=0 forbidden(occupied=1837522690 trapped=558549870) children(subset=8528323731) dead cells(3nb=1255135841 enclosed=312989071 cut=475332839)
+    LAM = 2.660075548827 (exact ratio 30613031269641620 / 11508331514550308 at state 3315780989)  =>  mu(Z^2) <= 2.660075548827
+
+so that `mu <= 7653257817410405/2877082878637577 = 2.66007554882623093...`; that run took 846 s on 176 threads. And
+`./check_saw 26 k26f 44` prints, with exit code 0,
+
+    CERTIFIED k=26 states=960470402 Vzero=0 forbidden(occupied=398483209 trapped=101832727) children(subset=2040865274) dead cells(3nb=298688271 enclosed=64135060 cut=106262887)
+    LAM = 2.661472061273 (exact ratio 2725816588621027200 / 1024176292618053632 at state 1062168)  =>  mu(Z^2) <= 2.661472061273
+
+so that `mu <= 21295442098601775/8001377286078544 = 2.66147206127291875...`; that run took 703 s on 44 threads.
+`independent/README.md` gives the output of the second checker for all three.
+
+## Building the certificates
+
+The certificate `k30e` was built by `builder/saw.cpp` with the command
+
+    SAW_ROUNDS=8 SAW_TOL0=1e-7 SAW_TOL=1e-12 SAW_GT=8,8,8,6,6,6,6,6,6,6,6,4,4,4,2,0 SAW_GT2=8,6,6,6,6,6,6,6,4,2,0 \
+      OMP_NUM_THREADS=128 numactl --interleave=all ./saw 30 PBXbSTU72q k30e 128 36
+
+which took 42,471 s on 128 threads, on a machine with 3.84 TB of memory; we recommend at least 3 TB of memory for a
+rebuild. A power iteration stops when the largest of the ratios `sum_children v / v` exceeds the smallest by a relative
+amount less than `SAW_TOL0` in the first six rounds and less than `SAW_TOL` in the last two.
+The certificates `k28f`, `k28e` and `k26f` were built by `builder/previous/saw.cpp` with
+
+    SAW_ROUNDS=8 SAW_TOL=1e-12 SAW_GT=8,8,8,8,6,6,6,6,6,6,4,4,4,2,0 SAW_GT2=8,8,6,6,6,6,6,6,4,2,0 OMP_NUM_THREADS=176 \
+      ./saw 28 PBXbSTU72q k28f 176 34
+    SAW_ROUNDS=9 SAW_TOL=1e-12 SAW_GT=8,8,8,6,6,6,6,6,6,6,4,4,4,2,0 SAW_GT2=8,6,6,6,6,6,6,4,2,0 OMP_NUM_THREADS=176 \
+      ./saw 28 PBXbSTU72q k28e 176 33
+    SAW_ROUNDS=10 SAW_TOL=1e-12 SAW_GT=8,8,8,8,6,6,6,6,6,4,4,4,2,0 SAW_GT2=8,8,6,6,6,6,6,4,2,0 OMP_NUM_THREADS=44 \
+      ./saw 26 PBXbSTU72q k26f 44 31
+
+which took 18,937 s and 9,603 s on 176 threads and 4,703 s on 44 threads. Each version can be compiled with
+
+    g++ -O2 -march=native -fopenmp -o saw builder/saw.cpp
+
+(or `builder/previous/saw.cpp`).
+
+The checkers do not depend on how the builder chose the children. The current version differs from the earlier one in
+speed and memory use and in three options: `SAW_TOL0`, used for `k30e`, and the rule `G` and `SAW_FORCE40` (64-bit
+entries also for fewer than 2^32 - 1 states), which were not used. With these options unset, the two versions give
+byte-identical files at orders 10, 12, 14 and 16, with 1 and 2 threads, and these files are the small certificates
+described in `independent/README.md`. At orders 10 to 16 the earlier version gave byte-identical files with 1 and 2
+threads and on two machines (GCC 15.2, x86-64). The certificates of orders 26, 28 and 30 were not rebuilt, so we do not
+claim that rebuilding them gives the same files.
+
+## Provenance notes
+
+- `k30e` was built from a copy of `builder/saw.cpp` with sha256
+  `8c3d49149d5add968365d12b8084a8aea185b0e746bb87de10e5fc3a76c61cb3`, and `k28f`, `k28e` and `k26f` from a copy of
+  `builder/previous/saw.cpp` with sha256 `16e76bc08659548b217dcdbde9686b4f03dd452bea8649606a0acfa04e330322`. Each copy
+  differs from the shipped file only in the wording of four comment lines (lines 1, 7, 15 and 168 of `builder/saw.cpp`;
+  lines 1, 7, 15 and 152 of `builder/previous/saw.cpp`); with the same compiler and flags, both copies compile to the
+  same binary.
+- The comment at line 132 of `checker/check_saw.cpp` gives the rule by which the builder chooses the width of the
+  entries unless `SAW_FORCE40` is set (the rule of the second checker); the code of `check_saw.cpp` accepts either
+  width.
+- doi:10.5281/zenodo.23540769, the first version of the record doi:10.5281/zenodo.23548806, contains the same `k28e`
+  and `k26f` files.
+
+## Lean proof
+
+`lean/README.md` states the theorem, lists the files and gives the build steps.
+
+The build reads the three files of `k30e`, joined and decompressed as in "Checking the certificate", and converts them
+into 11,497 Lean data files (796.4 GB) of at most 2,164,802 states. Lean compiles these into five shared libraries of
+about 800 GB in all; linking them uses about 320 GB of memory, and the build needs about 5.6 TB of disk space besides
+the decompressed certificate. The proof then runs 180 checking steps of at most 138,547,328 states each. They took
+about 1.2 × 10^6 CPU-seconds, or about 3.3 hours on one machine with 128 threads and about 2 TB of memory.
+
+The theorem depends on the standard axioms `propext`, `Classical.choice` and `Quot.sound` and on 181 `native_decide`
+axioms, one for each checking step and one for the start state. The toolchain is Lean v4.35.0-rc3 with Mathlib commit
+c55e6e786f49.
+
+`lean/controls/` holds the harness that runs the Lean checker on the certificates of orders 12, 14 and 16 and on
+certificates that must fail, with its logs and a README on regenerating these certificates. To regenerate them, give
+`lean/controls/make_certs.sh` the program `builder/previous/saw.cpp`. `lean/controls/native/` holds checks on `k30e`
+at indices above 2^33 and at the two states where the largest ratio is attained.
+
+## License
+
+Apache-2.0 (see `LICENSE`).
