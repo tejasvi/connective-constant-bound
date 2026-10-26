@@ -14,7 +14,7 @@ The certificates are not included and must be regenerated:
   - M1 empties the +x slot of state 0.
   - M2 redirects children.
   - M3 halves one weight.
-- `./make_certs.sh SAW_CPP INDEPENDENT_DIR` builds them under certs/, compares their sha256 with
+- `bash make_certs.sh SAW_CPP INDEPENDENT_DIR` builds them under certs/, compares their sha256 with
   independent/generated_SHA256SUMS and writes the C++ checker's outputs to logs/chk_NAME.out. SAW_CPP is
   builder/previous/saw.cpp of the supplement, the version that independent/gaploop_guard_removed.patch applies to; it
   builds the same small certificates as builder/saw.cpp. INDEPENDENT_DIR is the supplement's independent/ directory.
@@ -24,7 +24,7 @@ The certificates are not included and must be regenerated:
 
 Run:
 1. Copy ../Saw38aCore, ../Saw38aCore.lean, ../L38Loader.lean and ../tools here, and lean-toolchain from ../.
-2. `./make_certs.sh SAW_CPP INDEPENDENT_DIR` (see above).
+2. `bash make_certs.sh SAW_CPP INDEPENDENT_DIR` (see above).
 3. `python3 gen_ctl.py`: writes data/, CtlData/, CtlCheck/ and CtlReport/. It uses tools/mkchunk30e.py.
 4. `lake build CtlCheck`: 18 `native_decide` theorems. The 3 good certificates give `checkRange ... = true`; all
    others give `= false`.

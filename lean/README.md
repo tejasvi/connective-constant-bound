@@ -91,7 +91,7 @@ the checker does not depend on the data; the data only determine which certifica
 
 ## Build
 1. Download the ten xz files, then join and decompress them as in Data (995.5 GB after decompression).
-2. Run `tools/gen_data30e.sh PREFIX`, where PREFIX is the absolute path of the files without the extension (default
+2. Run `bash tools/gen_data30e.sh PREFIX`, where PREFIX is the absolute path of the files without the extension (default
    ~/l38/cert/k30e). The script checks the sha256 of the three files, converts them in parallel, and writes data/
    (796.4 GB of chunk data), pins/ and L38Data/. Compare pins/ with DATA_PINS.txt. The certificate files are not
    needed after this step.
