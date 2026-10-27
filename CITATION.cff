@@ -6,8 +6,8 @@ authors:
     given-names: Tejasvi Singh
     orcid: "https://orcid.org/0000-0003-4668-3639"
 license: Apache-2.0
-repository-code: "https://github.com/tejasvi/connective-constant-bound/tree/v6"
-doi: 10.5281/zenodo.23636439
+repository-code: "https://github.com/tejasvi/connective-constant-bound/tree/v7"
+doi: 10.5281/zenodo.23655279
 identifiers:
   - type: doi
     value: 10.5281/zenodo.23574056
@@ -24,9 +24,6 @@ identifiers:
   - type: doi
     value: 10.5281/zenodo.23574064
     description: "Certificate of order 30, part 5 of 5"
-  - type: doi
-    value: 10.5281/zenodo.23548806
-    description: "Certificates of orders 26 and 28; the order-26 certificate is checked by the kernel-only Lean proof"
 preferred-citation:
   type: article
   title: "An upper bound for the connective constant of the square lattice"
@@ -34,5 +31,5 @@ preferred-citation:
     - family-names: Tomar
       given-names: Tejasvi Singh
       orcid: "https://orcid.org/0000-0003-4668-3639"
-  doi: 10.5281/zenodo.23636438
+  doi: 10.5281/zenodo.23655278
   year: 2026

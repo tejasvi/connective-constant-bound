@@ -1,0 +1,16 @@
+name = "k30hint"
+srcDir = "src"
+defaultTargets = ["k30hint"]
+
+[[lean_lib]]
+name = "Saw38aCore"
+
+[[lean_lib]]
+name = "Saw38aK"
+
+[[lean_lib]]
+name = "K30B"
+
+[[lean_exe]]
+name = "k30hint"
+root = "K30Hint"
