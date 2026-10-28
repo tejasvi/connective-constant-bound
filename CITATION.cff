@@ -6,8 +6,8 @@ authors:
     given-names: Tejasvi Singh
     orcid: "https://orcid.org/0000-0003-4668-3639"
 license: Apache-2.0
-repository-code: "https://github.com/tejasvi/connective-constant-bound/tree/v7"
-doi: 10.5281/zenodo.23655279
+repository-code: "https://github.com/tejasvi/connective-constant-bound/tree/v8"
+doi: 10.5281/zenodo.23715897
 identifiers:
   - type: doi
     value: 10.5281/zenodo.23574056
@@ -31,5 +31,5 @@ preferred-citation:
     - family-names: Tomar
       given-names: Tejasvi Singh
       orcid: "https://orcid.org/0000-0003-4668-3639"
-  doi: 10.5281/zenodo.23655278
+  doi: 10.5281/zenodo.23715896
   year: 2026

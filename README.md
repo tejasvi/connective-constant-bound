@@ -1,8 +1,8 @@
 # An upper bound for the connective constant of the square lattice
 
 Programs, certificate hashes and the Lean formalization for the paper *An upper bound for the connective constant of the
-square lattice* by Tejasvi Singh Tomar (doi:10.5281/zenodo.23655278). The programs and the Lean files are archived at
-doi:10.5281/zenodo.23655279. The three files of the certificate are split into pieces and archived in five records:
+square lattice* by Tejasvi Singh Tomar (doi:10.5281/zenodo.23715896). The programs and the Lean files are archived at
+doi:10.5281/zenodo.23715897. The three files of the certificate are split into pieces and archived in five records:
 doi:10.5281/zenodo.23574056, doi:10.5281/zenodo.23574058, doi:10.5281/zenodo.23574060, doi:10.5281/zenodo.23574062 and
 doi:10.5281/zenodo.23574064 (see "Checking the certificate"). Three other certificates, with larger ratios, are archived
 in earlier records (see "Other certificates").
@@ -35,10 +35,10 @@ This is constant 38a of the repository of optimization constants (https://teorth
    visited or dead (Theorem 4.1), so distinct bridges give distinct paths in the automaton. If no weight is 0, the
    number of paths of length `n` is at most `V_start lambda^n`, where `lambda` is the largest ratio
    `sum_children V / V` (Lemma 5.1). Hence `mu <= lambda`.
-4. **The certificate of the theorem**, `k30e` (Section 6), has order 30 and 24,887,440,008 states, all with `V > 0`. Two
+4. **The certificate of the theorem**, `k30e` (Section 7), has order 30 and 24,887,440,008 states, all with `V > 0`. Two
    checkers, written independently, verify it and compute `lambda` exactly in 128-bit integer arithmetic. Both
    checkers also accept the three other certificates.
-5. **Lean proof** (Section 7). `lean/` holds a Lean 4 proof of the theorem without hypotheses,
+5. **Lean proof** (Section 8). `lean/` holds a Lean 4 proof of the theorem without hypotheses,
    `Saw38a.K30E.connective_constant_le_unconditional`. It also proves the Hammersley-Welsh inequality, in the form
    `c_n <= (n+1)^(2 floor(sqrt(2n))+1) b_(n+1)`. The certificate `k30e` is checked by a checker written in Lean, in 180
    `native_decide` steps that execute compiled code (and one more for the start state), so the Lean compiler is part
@@ -64,6 +64,7 @@ This is constant 38a of the repository of optimization constants (https://teorth
 - `lean/`: the Lean proof of the theorem (sources only), with its own README, `SHA256SUMS` and `DATA_PINS.txt`.
 - `lean_k30e/`: the second Lean proof of the theorem, which uses only Lean's kernel (sources, the programs that generate
   its data, hints and modules, and lists of sha256), with its own README and `SHA256SUMS`.
+- `paper/`: the LaTeX source of the paper (`main.tex`).
 - `SHA256SUMS`: sha256 of all other files in this repository.
 
 ## Certificate format
@@ -278,72 +279,36 @@ claim that rebuilding them gives the same files.
 
 ## Lean proof
 
-`lean/README.md` states the theorem, lists the files and gives the build steps.
-
-The build reads the three files of `k30e`, joined and decompressed as in "Checking the certificate", and converts them
-into 11,497 Lean data files (796.4 GB) of at most 2,164,802 states. Lean compiles these into five shared libraries of
-about 800 GB in all; linking them uses about 320 GB of memory, and the build needs about 5.6 TB of disk space besides
-the decompressed certificate. The proof then runs 180 checking steps of at most 138,547,328 states each. They took
-about 1.2 × 10^6 CPU-seconds, or about 3.3 hours on one machine with 128 threads and about 2 TB of memory.
-
-The theorem depends on the standard axioms `propext`, `Classical.choice` and `Quot.sound` and on 181 `native_decide`
-axioms, one for each checking step and one for the start state. The toolchain is Lean v4.35.0-rc3 with Mathlib commit
-c55e6e786f49.
-
-`lean/controls/` holds the harness that runs the Lean checker on the certificates of orders 12, 14 and 16 and on
-certificates that must fail. It also holds the harness's logs and a README on regenerating these certificates. To
-regenerate them, give `lean/controls/make_certs.sh` the program `builder/previous/saw.cpp`. `lean/controls/native/`
-holds checks on `k30e` at indices above 2^33 and at the two states where the largest ratio is attained.
+`lean/` proves the theorem in Lean 4, as `Saw38a.K30E.connective_constant_le_unconditional`, without hypotheses. Besides
+the standard axioms `propext`, `Classical.choice` and `Quot.sound`, it depends on 181 `native_decide` axioms, one for
+each of its 180 checking steps and one for the start state, so it trusts the compiled evaluation of the checker.
+`lean/README.md` states the theorem, lists the files and gives the build steps and their resources; the build needs
+about 5.6 TB of disk besides the decompressed certificate, and linking about 320 GB of memory. `lean/controls/` runs
+the Lean checker on the certificates of orders 12, 14 and 16 and on certificates that must fail. Lean's kernel replayed
+each of the 11,696 modules of this proof outside Lean and Mathlib, taking the 181 auxiliary axioms as given, and `leanchecker`, nanoda and
+lean4lean accepted the exported proofs of its general parts (the soundness of the checking program, the cover of the
+states by the 180 checking steps, the soundness of the automaton, the counting lemma, the bound `mu <= lambda` and the
+Hammersley-Welsh inequality), which use only the standard axioms. A rebuild on a second machine from the sources and a
+copy of the certificate gave byte-identical compiled files.
 
 ## A second proof, checked by the Lean kernel alone (`lean_k30e/`)
 
-`lean_k30e/` proves the theorem above, as `Saw38a.K30EK.connective_constant_le_unconditional`, without code generated by
+`lean_k30e/` proves the same theorem, as `Saw38a.K30EK.connective_constant_le_unconditional`, without code generated by
 Lean's compiler. Its statement is that of the theorem in `lean/`, and it has no hypotheses. `#print axioms` lists only
 `propext`, `Classical.choice` and `Quot.sound`: the trusted base is Lean's kernel, including the kernel's built-in
-arithmetic on natural numbers.
+arithmetic on natural numbers. The proof reuses the definitions of `lean/` and its proofs of the soundness of the
+automaton, the counting lemma and the Hammersley-Welsh inequality, in copies converted mechanically to Lean's module
+system. Its checker reads hints computed beforehand. The hints are not trusted, since a wrong hint can only make a check
+fail. The states are checked in 995,498 units, each by theorems proved with `decide +kernel`; building the units took
+about 213,000 hours of single-threaded processes. An independent check rebuilt 10,189 of the units and all part modules
+and the root, with byte-identical results. The rebuilt units were a random sample together with units selected by their
+position, their number of data modules or their build history. The same three kernel checkers accepted the theorems that derive the bound from a successful
+check, with the records left as parameters.
 
-The proof uses the same definitions, soundness of the automaton, counting lemma and Hammersley-Welsh inequality as
-`lean/`, in copies of its files converted mechanically to Lean's module system. Its checker stores the cells of a state
-as bit patterns, and Lean proofs show that a certificate it accepts satisfies the formal definition. Instead of trying
-the eight symmetries for a child and the three tests for a dead cell, the checker reads hints: the symmetry to use, and
-the test (a), (b) or (c) that applies, with the cut cell for test (c). A program compiled from the same Lean functions
-computes the hints. They are not trusted, since a wrong hint can only make a check fail.
-
-`lean_k30e/tools/exporter` packs the three files of `k30e` into 23,735 data files of at most 1,048,576 records (28 bytes
-per state), and the build reads them into 23,735 Lean data modules. The states are checked in 995,498 units of at most
-25,000 states. Each unit imports only the data modules that hold its states and their children, and Lean proofs show
-that its reads through these modules agree with the table of all records. Each unit is checked in theorems of at most 16
-states, proved with `decide +kernel`, and one theorem per unit combines them. The units are combined by 3,889 part
-modules of at most 256 units and a root module.
-
-`lean_k30e/data/` holds the sha256 of every data file (`MANIFEST.tsv`; 696,848,321,792 bytes in all) and of every
-compiled data module (`DATA_OLEAN_SHA256SUMS`). The supplement record holds four more files for this proof, listed with
-their sizes, sha256 and md5 in `lean_k30e/README.md`. `SHARDS_B25000.tsv` gives the states and the data modules of every
-unit, and `K30E_UNIT_OLEAN_SHA256SUMS.txt.xz` the sha256 of the three compiled files of every unit.
-`K30E_PARTS_ROOT.tar` and `K30E_DATA_PUBLICS.tar` hold the compiled public files of the parts, the root and the data
-modules. `lean_k30e/tools/check_root.sh` loads the root and checks its statement and axioms without rebuilding any data
-module, unit or part, or the root itself. For this it uses these two files together with the library, the proof layer
-and the statement files of `lean/`, built from the sources. Everything else can be rebuilt from the certificate with the
-programs in `lean_k30e/tools/` and compared with these lists.
-
-Building and checking the units took about 213,000 hours of single-threaded processes, one per unit: 771 seconds per
-unit on average and at most 2,634, on 68 cloud servers with 180 to 384 virtual cores, within 19 hours. A unit needed at
-most about 3 GB of memory. The data modules took 297 hours, each part module about 15 seconds and 1 GB, and the root
-module 41 seconds and about 4 GB. The 13 units that exceeded Lean's default limit on elaboration work were in twelve
-batches of 16 units, 192 units in all, and these batches were built with `-DmaxHeartbeats=0`. Only those 13 units need
-the option when they are rebuilt. The option removes that limit and leaves the sources and the declarations that the
-kernel checks unchanged. `lean_k30e/README.md` gives the commands.
-
-An independent check rebuilt 10,189 distinct units of the 995,498, and all of them gave byte-identical compiled files.
-The rebuilt units were 9,955 drawn at random with a seed fixed before the check; 8 fixed edge cases, among them the
-first and the last unit; the 32 units of the two batches that were built twice; the 192 units built with
-`-DmaxHeartbeats=0`; and the three slowest units among those with recorded times. One unit is in two of these groups.
-The check also rebuilt all 3,889 part modules and the root from the compiled public files of the units, with identical
-results. It also compared the theorem and eight further theorems, as Lean expressions, with the statements they must
-have, taken from `lean/Saw38a/Statements30e.lean`, and found them identical. Three kernel checkers (Lean's `leanchecker`
-and the independent implementations nanoda and lean4lean) accepted the theorems that lead from a successful check to the
-bound, with the data left abstract.
-
+`lean_k30e/tools/check_root.sh` checks the statement and the axioms of the final theorem from two files of the
+supplement record and the library built from the sources, without rebuilding any data module, unit or part.
+`lean_k30e/README.md` describes the structure of the proof, the four supplement files, the build and its resources, and
+the independent check.
 
 ## License
 

@@ -11,6 +11,12 @@
 - `generated_SHA256SUMS`: sha256 of the small certificates generated for the checks below, in our build.
 - `SHA256SUMS`: sha256 of the files above.
 
+The checking logic of `check38a.cpp` was written from the description of the checked conditions before its author read
+the first checker. The version here differs from the program as first written in its interface, that is, its messages
+and the choice of the printed state, and in three further respects: it tests a claimed ratio for equality instead of
+inequality, it has added checks that make it fail on malformed input or on an overflow of a counter, and it limits the
+number of candidates for the cell w of test (c), a limit that the certificate never reaches.
+
 ## Build
 
     g++ -O2 -march=native -fopenmp -o check38a check38a.cpp
